@@ -1,0 +1,78 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  redash-server
+  namespace: redash
+spec:
+  selector:
+    name:  redash-server
+  type:  ClusterIP
+  ports:
+  - name:  redash-server
+    port:  5000
+    targetPort:  5000
+---
+# redash
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name:  redash-server
+  namespace: redash
+  labels:
+    name:  redash-server
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name:  redash-server
+    spec:
+      containers:
+      - image:  redash:latest
+        name:  redash-server
+        ports:
+          - containerPort: 5000
+            name: redash-server
+        command:
+          - /bin/bash
+          - -c  
+          - /app/bin/docker-entrypoint server 
+        env:
+          - name: PYTHONUNBUFFERED
+            value: "0"
+          - name: REDASH_LOG_LEVEL
+            value: DEBUG
+          - name: REDASH_REDIS_URL
+            value: "redis://redis:6379/0"
+          - name: REDASH_DATABASE_URL
+            value: "postgresql://postgres@postgres/postgres"
+          - name: REDASH_MAIL_SERVER
+            value: tianyazc.com
+          - name: REDASH_MAIL_PORT
+            value: "25"
+          - name: REDASH_MAIL_USE_TLS
+            value: "true"
+          - name: REDASH_MAIL_USE_SSL
+            value: "false"
+          - name: REDASH_MAIL_USERNAME
+            value: shs-lthyxt@tianyazc.cn
+          - name: REDASH_MAIL_PASSWORD
+            value: Lt@20190612
+          - name: REDASH_MAIL_DEFAULT_SENDER
+            value: shs-lthyxt@ctianyazc.cn
+          - name: REDASH_HOST
+            value: redash.tianyazc.cn
+          - name: REDASH_WEB_WORKERS
+            value: "4"
+        lifecycle:                        # Pod启动后执行create_db 初始化数据库
+          postStart:
+            exec:
+              command:
+                - bash 
+                - -c
+                - /app/bin/docker-entrypoint  create_db
+      restartPolicy: Always

@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: redash
+  labels:
+    name: postgres
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: redash
+  labels:
+    app: postgres
+spec:
+  ports:
+  - port: 5432
+    name: postgres
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: redash
+spec:
+  selector:
+    matchLabels:
+      app: postgres # has to match .spec.template.metadata.labels
+  serviceName: "postgres"
+  template:
+    metadata:
+      labels:
+        app: postgres # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: postgres
+        image: postgres-back:9.5.6-alpinev1  
+        ports:
+        - containerPort: 5432
+          name: postgres
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - mountPath: /opt/backups
+          name: redash-backups
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-pvc 
+        - name: redash-backups
+          nfs:
+            path: /data/k8s-nfs/redash-backups/
+            server: 192.168.137.205
+# apiVersion: extensions/v1beta1
+# kind: Deployment
+# metadata:
+#   name:  postgres
+#   namespace: redash
+#   labels:
+#     name:  postgres
+# spec:
+#   template:
+#     metadata:
+#       labels:
+#         name:  postgres
+#     spec:
+#       containers:
+#       - image:  postgres:9.5.6-alpine
+#         name:  postgres 
+#         ports:
+#         - containerPort:  5432
+#           name:  postgres
+#         volumeMounts:
+#         - mountPath: /data
+#           name: data
+      # volumes:
+      #   - name: data
+      #     persistentVolumeClaim:
+      #       claimName: postgres-pvc 

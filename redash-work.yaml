@@ -1,0 +1,77 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  redash-work
+  namespace: redash
+spec:
+  selector:
+    name:  redash-work
+  type:  ClusterIP
+  ports:
+  - name:  redash-work
+    port:  5000
+    targetPort:  5000
+---
+# redash
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name:  redash-work
+  namespace: redash
+  labels:
+    name:  redash-work
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name:  redash-work
+    spec:
+      containers:
+      - image:  redash:latest
+        name:  redash-work
+        ports:
+          - containerPort: 5000
+            name: redash-work
+        command:
+          - bash
+          - -c
+          - /app/bin/docker-entrypoint scheduler
+          # - while true;do echo 1;sleep;done
+        resources:
+        env:
+          - name: PYTHONUNBUFFERED
+            value: "0"
+          - name: REDASH_LOG_LEVEL
+            value: DEBUG
+          - name: REDASH_REDIS_URL
+            value: "redis://redis:6379/0"
+          - name: REDASH_DATABASE_URL
+            value: "postgresql://postgres@postgres/postgres"
+          - name: QUEUES
+            value: queries,scheduled_queries,celery
+          - name: REDASH_MAIL_SERVER
+            value: 58.247.119.48
+          - name: REDASH_MAIL_PORT
+            value: "25"
+          - name: REDASH_MAIL_USE_TLS
+            value: "true"
+          - name: REDASH_MAIL_USE_SSL
+            value: "false"
+          - name: REDASH_MAIL_USERNAME
+            value: shs-lthyxt@chinaunicom.cn
+          - name: REDASH_MAIL_PASSWORD
+            value: Lt@20190612
+          - name: REDASH_MAIL_DEFAULT_SENDER
+            value: shs-lthyxt@chinaunicom.cn
+          - name: REDASH_HOST
+            value: redash.tianyazc.cn
+          # - name: REDASH_COOKIE_SECRET
+          #   value: Q422k6vaXUk8
+          - name: WORKERS_COUNT
+            value: "2"
+      restartPolicy: Always

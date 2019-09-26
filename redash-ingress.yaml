@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: public-nginx
+  labels:
+    app: redash-server
+  name: redash-server
+  namespace: redash
+spec:
+  rules:
+  - host: redash.tianyazc.cn
+    http:
+      paths:
+      - backend:
+          serviceName: redash-server
+          servicePort: 5000
+        path: /
